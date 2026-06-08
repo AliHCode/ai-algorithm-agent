@@ -41,21 +41,25 @@ st.sidebar.header("⚙️ Agent Settings")
 api_provider = st.sidebar.selectbox("LLM Provider", ["gemini", "openai"])
 target_lang = st.sidebar.selectbox("Programming Language", ["Python", "C++", "Java", "JavaScript"])
 
+# Sidebar Info
+st.sidebar.divider()
+st.sidebar.caption("**Note:** Free-tier Gemini API has ~20 requests/day limit. "
+                    "If you get rate-limit errors, wait 1 minute and try again.")
+
 # Main Input Form
 with st.form("agent_form"):
     algo_name = st.text_input("Algorithm Name", placeholder="e.g., Dijkstra's Shortest Path, Merge Sort, A*")
     user_query = st.text_area("Your Question / Prompt", 
                               placeholder="e.g., Write the algorithm in Python, explain how it works step-by-step, and calculate its average time complexity.")
-    submit_btn = st.form_submit_button("Run Agent Pipeline")
+    submit_btn = st.form_submit_button("🚀 Run Agent Pipeline")
 
 if submit_btn:
     if not algo_name or not user_query:
         st.warning("Please fill in both the Algorithm Name and Your Query!")
     else:
-        st.info("Coordinator Agent initializing specialists... Running pipeline.")
         coordinator = CoordinatorAgent()
         
-        with st.spinner("Processing through multi-agent stages..."):
+        with st.spinner("🔄 Querying Gemini API... This may take up to 60 seconds if rate-limited."):
             response_md = coordinator.process_query(
                 query=user_query, 
                 algorithm=algo_name, 
@@ -63,8 +67,8 @@ if submit_btn:
                 provider=api_provider
             )
             
-        st.success("Pipeline executed successfully!")
+        st.success("✅ Pipeline executed successfully!")
         st.markdown(response_md)
         
-        st.subheader("📋 Copy Output:")
-        st.code(response_md, language="markdown")
+        with st.expander("📋 Copy Raw Output"):
+            st.code(response_md, language="markdown")

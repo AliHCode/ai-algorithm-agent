@@ -1,9 +1,18 @@
 # config.py
 import os
 
-# API Keys (Fallback to environment variables)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# API Keys (Fallback to environment variables or local keys.json)
+import json
+keys = {}
+if os.path.exists("keys.json"):
+    try:
+        with open("keys.json", "r") as f:
+            keys = json.load(f)
+    except Exception:
+        pass
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", keys.get("GEMINI_API_KEY", ""))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", keys.get("OPENAI_API_KEY", ""))
 
 # Default Models
 PRIMARY_MODEL = "gemini-1.5-flash"

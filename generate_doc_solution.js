@@ -32,7 +32,7 @@ function spacer(count = 1) {
 function sectionHeading(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Calibri", size: 28, bold: true })], // 14pt bold
-    spacing: { before: 240, after: 120 },
+    spacing: { before: 180, after: 80 },
     alignment: AlignmentType.LEFT,
   });
 }
@@ -40,7 +40,7 @@ function sectionHeading(text) {
 function subHeading(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Calibri", size: 24, bold: true, italics: true })], // 12pt bold italics
-    spacing: { before: 160, after: 80 },
+    spacing: { before: 120, after: 50 },
     alignment: AlignmentType.LEFT,
   });
 }
@@ -48,16 +48,16 @@ function subHeading(text) {
 function subSubHeading(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Calibri", size: 24, bold: true })], // 12pt bold
-    spacing: { before: 120, after: 60 },
+    spacing: { before: 90, after: 40 },
     alignment: AlignmentType.LEFT,
   });
 }
 
-// Body text: increased spacing after to 180 and line spacing to 360 (1.5 line spacing) for 14-page expansion
+// Body text: adjusted to 1.3 line spacing and 6pt after paragraph to hit target page count (13-14 pages)
 function bodyText(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Calibri", size: 24 })], // 12pt regular
-    spacing: { after: 180, line: 360 },
+    spacing: { after: 120, line: 312 },
     alignment: AlignmentType.LEFT,
   });
 }
@@ -68,7 +68,7 @@ function boldBodyText(label, text) {
       new TextRun({ text: label, bold: true, font: "Calibri", size: 24 }),
       new TextRun({ text: text, font: "Calibri", size: 24 }),
     ],
-    spacing: { after: 180, line: 360 },
+    spacing: { after: 120, line: 312 },
     alignment: AlignmentType.LEFT,
   });
 }
@@ -77,14 +77,14 @@ function bulletItem(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Calibri", size: 24 })], // 12pt
     bullet: { level: 0 },
-    spacing: { after: 120, line: 360 },
+    spacing: { after: 80, line: 312 },
   });
 }
 
 function monospaceText(text) {
   return new Paragraph({
     children: [new TextRun({ text, font: "Courier New", size: 20 })], // 10pt monospace
-    spacing: { after: 80, line: 200 },
+    spacing: { after: 40, line: 180 },
     indent: { left: 360 },
   });
 }

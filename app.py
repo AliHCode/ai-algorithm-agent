@@ -31,7 +31,7 @@ st.markdown("""
         font-weight: 800;
     }
     </style>
-""", unsafe_allow_code=True)
+""", unsafe_allow_html=True)
 
 st.title("🤖 AI-Powered Algorithm Generation & Explanation Agent")
 st.write("A task-oriented multi-agent assistant to generate, explain, and analyze code structures.")

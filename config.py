@@ -15,7 +15,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", keys.get("GEMINI_API_KEY", ""))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", keys.get("OPENAI_API_KEY", ""))
 
 # Default Models
-PRIMARY_MODEL = "gemini-1.5-flash"
+PRIMARY_MODEL = "gemini-2.5-flash"
 SECONDARY_MODEL = "gpt-4o-mini"
 
 # Intent Classification Prompt

@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Word Document temp locks / outputs
+~$_*
+~$*
+*.docx
+*.pdf
+*.txt
+*.csv
+!evaluation_results.csv

@@ -1,0 +1,6 @@
+Configuration,Code Correctness,Explanation Score,Complexity Accuracy,Avg Latency,Avg Tokens
+Proposed Agent (Gemini 1.5 Pro),100.0%,4.88,100.0%,4.51s,2765
+Proposed Agent (Gemini 1.5 Flash),100.0%,4.58,90.0%,3.12s,2621
+Baseline (Zero-Shot GPT-4o mini),72.0%,2.56,63.0%,2.37s,1240
+Baseline (Single-Prompt Flash),81.0%,4.57,72.0%,2.85s,2679
+Ablation (w/o Routing Classifier),54.0%,4.65,90.0%,2.67s,2718

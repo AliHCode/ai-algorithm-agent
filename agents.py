@@ -1,6 +1,7 @@
 # agents.py
 import requests
 import json
+import time
 from config import *
 
 class LLMClient:
@@ -12,12 +13,43 @@ class LLMClient:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         data = {"contents": [{"parts": [{"text": prompt}]}]}
-        try:
-            response = requests.post(url, headers=headers, json=data, timeout=15)
-            response_json = response.json()
-            return response_json['candidates'][0]['content']['parts'][0]['text']
-        except Exception as e:
-            return f"Gemini API Error: {str(e)}"
+        
+        max_retries = 3
+        backoff = 5
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(url, headers=headers, json=data, timeout=60)
+                
+                # Check for rate-limiting (HTTP 429) or non-200 status
+                if response.status_code == 429:
+                    delay = backoff
+                    try:
+                        response_json = response.json()
+                        for detail in response_json.get("error", {}).get("details", []):
+                            if "RetryInfo" in detail.get("@type", ""):
+                                # Extract seconds from e.g. "40s"
+                                delay = float(detail.get("retryDelay", "5s").rstrip("s")) + 1
+                                break
+                    except Exception:
+                        pass
+                    
+                    time.sleep(delay)
+                    backoff *= 2
+                    continue
+                
+                response_json = response.json()
+                if response.status_code == 200:
+                    return response_json['candidates'][0]['content']['parts'][0]['text']
+                else:
+                    error_msg = response_json.get("error", {}).get("message", "Unknown error")
+                    return f"Gemini API Error: Status {response.status_code} - {error_msg}"
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    return f"Gemini API Error: {str(e)}"
+                time.sleep(backoff)
+                backoff *= 2
+        return "Gemini API Error: Max retries exceeded."
 
     @staticmethod
     def call_openai(prompt, api_key=OPENAI_API_KEY, model=SECONDARY_MODEL):
@@ -34,7 +66,7 @@ class LLMClient:
             "temperature": 0.2
         }
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=15)
+            response = requests.post(url, headers=headers, json=data, timeout=60)
             response_json = response.json()
             return response_json['choices'][0]['message']['content']
         except Exception as e:

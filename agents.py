@@ -6,50 +6,79 @@ from config import *
 
 class LLMClient:
     """Handles communication with LLM APIs (Gemini and OpenAI)"""
+    # Fallback model chain — if the primary model is overloaded or rate-limited,
+    # automatically try the next model in the list.
+    FALLBACK_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash-lite",
+    ]
+
     @staticmethod
     def call_gemini(prompt, api_key=GEMINI_API_KEY, model=PRIMARY_MODEL):
         if not api_key:
             return None, "API key not set"
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        
+        # Build model list: primary model first, then fallbacks (deduped)
+        models_to_try = [model]
+        for fb in LLMClient.FALLBACK_MODELS:
+            if fb not in models_to_try:
+                models_to_try.append(fb)
+
         headers = {"Content-Type": "application/json"}
         data = {"contents": [{"parts": [{"text": prompt}]}]}
-        
-        max_retries = 3
-        backoff = 5
-        
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(url, headers=headers, json=data, timeout=120)
-                
-                # Check for rate-limiting (HTTP 429)
-                if response.status_code == 429:
-                    delay = backoff
-                    try:
-                        response_json = response.json()
-                        for detail in response_json.get("error", {}).get("details", []):
-                            if "RetryInfo" in detail.get("@type", ""):
-                                delay = float(detail.get("retryDelay", "5s").rstrip("s")) + 2
-                                break
-                    except Exception:
-                        pass
-                    
-                    time.sleep(delay)
-                    backoff *= 2
+        last_error = "No models available"
+
+        for current_model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={api_key}"
+            
+            max_retries = 2
+            backoff = 5
+
+            for attempt in range(max_retries):
+                try:
+                    response = requests.post(url, headers=headers, json=data, timeout=120)
+
+                    # Rate-limited — wait and retry same model
+                    if response.status_code == 429:
+                        delay = backoff
+                        try:
+                            response_json = response.json()
+                            for detail in response_json.get("error", {}).get("details", []):
+                                if "RetryInfo" in detail.get("@type", ""):
+                                    delay = float(detail.get("retryDelay", "5s").rstrip("s")) + 2
+                                    break
+                        except Exception:
+                            pass
+                        time.sleep(delay)
+                        backoff *= 2
+                        continue
+
+                    # Server overloaded — skip to next model immediately
+                    if response.status_code == 503:
+                        try:
+                            last_error = response.json().get("error", {}).get("message", "Model overloaded (503)")
+                        except Exception:
+                            last_error = "Model overloaded (503)"
+                        break  # break retry loop, try next model
+
+                    response_json = response.json()
+                    if response.status_code == 200:
+                        text = response_json['candidates'][0]['content']['parts'][0]['text']
+                        return text, None
+                    else:
+                        last_error = response_json.get("error", {}).get("message", "Unknown error")
+                        break  # non-retryable error, try next model
+
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt < max_retries - 1:
+                        time.sleep(backoff)
+                        backoff *= 2
                     continue
-                
-                response_json = response.json()
-                if response.status_code == 200:
-                    text = response_json['candidates'][0]['content']['parts'][0]['text']
-                    return text, None
-                else:
-                    error_msg = response_json.get("error", {}).get("message", "Unknown error")
-                    return None, f"Status {response.status_code}: {error_msg}"
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    return None, str(e)
-                time.sleep(backoff)
-                backoff *= 2
-        return None, "Max retries exceeded"
+
+        return None, last_error
 
     @staticmethod
     def call_openai(prompt, api_key=OPENAI_API_KEY, model=SECONDARY_MODEL):

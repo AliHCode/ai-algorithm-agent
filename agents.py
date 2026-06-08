@@ -33,50 +33,28 @@ class LLMClient:
         for current_model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={api_key}"
             
-            max_retries = 2
-            backoff = 5
+            try:
+                response = requests.post(url, headers=headers, json=data, timeout=120)
 
-            for attempt in range(max_retries):
-                try:
-                    response = requests.post(url, headers=headers, json=data, timeout=120)
+                # Rate-limited or overloaded — skip to next model immediately
+                if response.status_code in (429, 503):
+                    try:
+                        last_error = response.json().get("error", {}).get("message", f"HTTP {response.status_code}")
+                    except Exception:
+                        last_error = f"HTTP {response.status_code}"
+                    continue  # try next model
 
-                    # Rate-limited — wait and retry same model
-                    if response.status_code == 429:
-                        delay = backoff
-                        try:
-                            response_json = response.json()
-                            for detail in response_json.get("error", {}).get("details", []):
-                                if "RetryInfo" in detail.get("@type", ""):
-                                    delay = float(detail.get("retryDelay", "5s").rstrip("s")) + 2
-                                    break
-                        except Exception:
-                            pass
-                        time.sleep(delay)
-                        backoff *= 2
-                        continue
+                response_json = response.json()
+                if response.status_code == 200:
+                    text = response_json['candidates'][0]['content']['parts'][0]['text']
+                    return text, None
+                else:
+                    last_error = response_json.get("error", {}).get("message", "Unknown error")
+                    continue  # try next model
 
-                    # Server overloaded — skip to next model immediately
-                    if response.status_code == 503:
-                        try:
-                            last_error = response.json().get("error", {}).get("message", "Model overloaded (503)")
-                        except Exception:
-                            last_error = "Model overloaded (503)"
-                        break  # break retry loop, try next model
-
-                    response_json = response.json()
-                    if response.status_code == 200:
-                        text = response_json['candidates'][0]['content']['parts'][0]['text']
-                        return text, None
-                    else:
-                        last_error = response_json.get("error", {}).get("message", "Unknown error")
-                        break  # non-retryable error, try next model
-
-                except Exception as e:
-                    last_error = str(e)
-                    if attempt < max_retries - 1:
-                        time.sleep(backoff)
-                        backoff *= 2
-                    continue
+            except Exception as e:
+                last_error = str(e)
+                continue  # try next model
 
         return None, last_error
 
